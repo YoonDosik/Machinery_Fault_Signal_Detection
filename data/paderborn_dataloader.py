@@ -3,13 +3,13 @@ import torch
 from torch.utils import data
 from torch.utils.data import DataLoader
 from torchvision import datasets, transforms
-import importlib
 import numpy as np
+# py파일의 경로 입력
+import sys
+sys.path.append('C:\\Users\\com\\PycharmProjects\\Machinery Fault Signal Detection\\data')
 import paderborn_preprocessing as st
 from sklearn.model_selection import train_test_split
 import time
-
-importlib.reload(st)
 
 class data_loader(data.Dataset):
 
@@ -59,9 +59,10 @@ def Creation_label(data, path):
 
     return True_label, Sign_label
 
-def Normal_Train_test_spliting(path,percent, sampling_rate):
+def Normal_Train_test_spliting(path, percent, sampling_rate):
 
-    'percent : 학습 및 테스트 데이터의 비율'
+    # 'percent : 학습 및 테스트 데이터의 비율
+    # sampling_rate : Raw signal 길이
 
     start_time = time.time()
 
@@ -86,12 +87,6 @@ def Normal_Train_test_spliting(path,percent, sampling_rate):
         Normal_Train_Label.append(Normal_train_label)
         Normal_Test_Label.append(Normal_test_label)
 
-    # Normal_train = np.array(Normal_train)
-    # Normal_test = np.array(Normal_test)
-    #
-    # Normal_train = Normal_train.reshape(Normal_train.shape+(1,))
-    # Normal_test = Normal_test.reshape(Normal_test.shape+(1,))
-    #
     test_time = time.time() - start_time
 
     print('Spend Time : {:.3f}'. format(test_time))
@@ -110,12 +105,6 @@ def Outlier_Train_test_spliting(path, percent, sampling_rate):
                                                                                         test_size=1 - percent,
                                                                                         shuffle=True)
 
-    # Normal_train = np.array(Normal_train)
-    # Normal_test = np.array(Normal_test)
-    #
-    # Normal_train = Normal_train.reshape(Normal_train.shape+(1,))
-    # Normal_test = Normal_test.reshape(Normal_test.shape+(1,))
-    #
     test_time = time.time() - start_time
 
     print('Spend Time : {:.3f}'.format(test_time))
@@ -132,10 +121,6 @@ def Outlier_data_Creation(path, sampling_rate):
 
     true_label, sign_label = Creation_label(out_data, path)
 
-    # data = np.array(out_data)
-    #
-    # data = data.reshape(data.shape + (1,))
-
     test_time = time.time() - start_time
 
     print('Spend Time : {:.3f}'. format(test_time))
@@ -147,6 +132,7 @@ def get_dataloader(args, scenario_0_args, Normal_path, sampling_rate):
     train_data, test_data, train_label, test_label = Normal_Train_test_spliting(Normal_path, args.percent, sampling_rate)
 
     Data_train = []
+
     for i in range(len(train_data)):
         data_train = data_loader(train_data[i], train_label[i])
         Data_train.append(data_train)

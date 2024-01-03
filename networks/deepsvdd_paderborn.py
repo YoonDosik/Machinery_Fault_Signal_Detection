@@ -13,15 +13,12 @@ from sklearn.metrics import roc_auc_score
 import torch
 from torch import optim
 import sys
-
-sys.path.append('C:\\Users\\com\\Pytorch\\python_code')
+sys.path.append('C:\\Users\\com\\PycharmProjects\\Machinery Fault Signal Detection\\networks')
 
 import utils
 import time
 from Bar import Bar
 from sklearn.neighbors import NearestNeighbors
-
-
 class Signal_network(nn.Module):
 
     def __init__(self, z_dim=16):
