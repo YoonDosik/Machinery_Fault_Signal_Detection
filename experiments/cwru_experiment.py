@@ -10,6 +10,7 @@ sys.path.append('C:\\Users\\com\\PycharmProjects\\Machinery Fault Signal Detecti
 import CWRU_dataloader as cwp
 sys.path.append('C:\\Users\\com\\PycharmProjects\\Machinery Fault Signal Detection\\networks')
 import deepsvdd_cwru as Deep_SVDD
+import autoencoder_cwru as AE
 
 # Anomaly detection scenario for CWRU dataset
 
@@ -138,7 +139,7 @@ args = Args()
 
 def Comparison_Experiment_FE(args, device, scenario_0_args, epoch):
 
-    AUC_Result = np.zeros((epoch,1))
+    AUC_Result = np.zeros((epoch,2))
 
     # epoch = 반복 실험 횟수
     for i in range(epoch):
@@ -149,13 +150,12 @@ def Comparison_Experiment_FE(args, device, scenario_0_args, epoch):
 
         Deep_SVDD.pretrain(args, dataloader_train, device)
         deep_one_net, deep_one_c, z, Deep_SVDD_test_time = Deep_SVDD.train(args, dataloader_train, device)
-        Deep_SVDD_labels, Deep_SVDD_scores, Deep_SVDD_ROC_value, Deep_SVDD_z = Deep_SVDD.evaluation(deep_one_net, deep_one_c,
-                                                                                               dataloader_test, device)
-        AUC_Result[i][0] = Deep_SVDD_ROC_value
+        Deep_SVDD_labels, Deep_SVDD_scores, Deep_SVDD_ROC_value, Deep_SVDD_z = Deep_SVDD.evaluation(deep_one_net, deep_one_c, dataloader_test, device)
+        AUC_Result[i][1] = Deep_SVDD_ROC_value
 
 
     a = pd.DataFrame(AUC_Result)
-    a.columns = ['Deep_SVDD']
+    a.columns = ['AE','Deep_SVDD']
     a.to_csv(str(scenario_0_args.Normal_path[-6:] + "_" + str(args.lr) + "_AUC_Result.csv"))
 
 # 실험 반복 횟수
