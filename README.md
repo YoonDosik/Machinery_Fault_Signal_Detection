@@ -28,6 +28,10 @@ traditional methods.
 
 Contains the data. I implemented support for Case Western Reserve University (CWRU) & Paderborn University (Paderborn)
 
+![image](https://github.com/YoonDosik/Machinery_Fault_Signal_Detection/assets/144199897/0fc2b70b-5eb3-4081-93e5-929b4453c5ab)
+
+![image](https://github.com/YoonDosik/Machinery_Fault_Signal_Detection/assets/144199897/19ed14ea-346d-4aa4-a855-7cfc49b843ff)
+
 - CWRU(https://engineering.case.edu/bearingdatacenter)
 - Paderborn(https://mb.uni-paderborn.de/kat/forschung/kat-datacenter/bearing-datacenter/data-sets-and-download)
 
