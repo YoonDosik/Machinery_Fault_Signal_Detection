@@ -8,10 +8,8 @@ Additionally Deep SVDD is written based on https://github.com/lukasruff/Deep-SVD
 
 # **Abstract**
 
->> Fault detection of machinery systems is a fundamental prerequisite to implementing
-condition-based maintenance, which is the most eminent manufacturing equipment system management strategy. 
-To build the fault detection model, one-class classification algorithms have been
-used, which construct the decision boundary only using normal class. For more accurate one-class
+>> Fault detection of machinery systems is a fundamental prerequisite to implementing condition-based maintenance, which is the most eminent manufacturing equipment system management strategy. 
+To build the fault detection model, one-class classification algorithms have been used, which construct the decision boundary only using normal class. For more accurate one-class
 classification, signal data have been used recently because the signal data directly reflect the condition
 of the machinery system. To analyze the machinery condition effectively with the signal data, features
 of signals should be extracted, and then, the one-class classifier is constructed with the features.
