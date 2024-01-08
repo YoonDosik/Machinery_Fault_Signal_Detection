@@ -13,6 +13,7 @@ import deepsvdd_cwru as Deep_SVDD
 import autoencoder_cwru as AE
 import cae_cwru as CAE
 import AnoGAN_cwru as AnoGAN
+import soft_deepsvdd_cwru as Soft_Deep_SVDD
 
 # Anomaly detection scenario for CWRU dataset
 
@@ -157,7 +158,6 @@ class CAE_Args:
     pretrain = None
     latent_dim = 16
     save_path = 'C:\\Python_Code'
-
 class AnoGAN_Args:
 
     epochs = 50
@@ -173,14 +173,35 @@ class AnoGAN_Args:
     save_path = os.getcwd()
     l = 0.1
 
+class Soft_Args():
+
+    num_epochs_ae = 6
+    n_epochs = 200
+    objective = 'soft-boundary'
+    nu = 0.07
+    lr = 0.001
+    lr_ae = 0.001
+    lr_milestones = [100]
+    lr_milestones_ae = [3]
+    batch_size = 32
+    weight_decay = 0.5e-6
+    latent_dim = 16
+    pretrain = 32
+    save_path = 'D:\\Python_Code'
+    initial_radius = 0
+    pretrain = True
+    weight_decay = 0.5e-6
+    weight_decay_ae = 0.5e-3
+
 args = Args()
 ae_args = AE_Args()
 cae_args = CAE_Args()
 anogan_args = AnoGAN_Args()
+soft_args = Soft_Args()
 
-def Comparison_Experiment_FE(args,ae_args,cae_args,anogan_args, device, scenario_0_args, epoch):
+def Comparison_Experiment_FE(args,ae_args,cae_args,anogan_args,soft_args, device, scenario_0_args, epoch):
 
-    AUC_Result = np.zeros((epoch,4))
+    AUC_Result = np.zeros((epoch,5))
 
     # epoch = 반복 실험 횟수
     for i in range(epoch):
@@ -203,20 +224,26 @@ def Comparison_Experiment_FE(args,ae_args,cae_args,anogan_args, device, scenario
         AnoGAN_ROC_Value = AnoGAN.AnoGAN_ROC_Value(AnoGAN_score, dataloader_test)
         AUC_Result[i][2] = AnoGAN_ROC_Value
 
+        # Soft-boundary Deep SVDD
+        R = soft_args.initial_radius
+        soft_net, soft_c, optimal_R, normal_latent, Soft_test_time = Soft_Deep_SVDD.train(soft_args, dataloader_train, device, R)
+        Soft_test_labels, Soft_test_scores, Soft_test_ROC_Value, Soft_test_latent = Soft_Deep_SVDD.test(soft_args,soft_net, soft_c, dataloader_test, optimal_R, device)
+        AUC_Result[i][3] = Soft_test_ROC_Value
+
         # Deep One Class SVDD
         Deep_SVDD.pretrain(args, dataloader_train, device)
         deep_one_net, deep_one_c, z, Deep_SVDD_test_time = Deep_SVDD.train(args, dataloader_train, device)
         Deep_SVDD_labels, Deep_SVDD_scores, Deep_SVDD_ROC_value, Deep_SVDD_z = Deep_SVDD.evaluation(deep_one_net, deep_one_c, dataloader_test, device)
-        AUC_Result[i][3] = Deep_SVDD_ROC_value
+        AUC_Result[i][4] = Deep_SVDD_ROC_value
 
     a = pd.DataFrame(AUC_Result)
-    a.columns = ['AE','CAE','AnoGAN','Deep_SVDD']
+    a.columns = ['AE','CAE','AnoGAN','Soft_Deep_SVDD','Deep_SVDD']
     a.to_csv(str(scenario_0_args.Normal_path[-6:] + "_" + str(args.lr) + "_AUC_Result.csv"))
 
 # 실험 반복 횟수
 epoch = 1
 
-AUC_Result_FE_0 = Comparison_Experiment_FE(args,ae_args,cae_args,anogan_args, device, scenario_0_fe_args, epoch)
-AUC_Result_FE_1 = Comparison_Experiment_FE(args,ae_args,cae_args,anogan_args, device, scenario_1_fe_args, epoch)
-AUC_Result_FE_2 = Comparison_Experiment_FE(args,ae_args,cae_args,anogan_args, device, scenario_2_fe_args, epoch)
-AUC_Result_FE_3 = Comparison_Experiment_FE(args,ae_args,cae_args,anogan_args, device, scenario_3_fe_args, epoch)
+AUC_Result_FE_0 = Comparison_Experiment_FE(args,ae_args,cae_args,anogan_args,soft_args, device, scenario_0_fe_args, epoch)
+AUC_Result_FE_1 = Comparison_Experiment_FE(args,ae_args,cae_args,anogan_args,soft_args, device, scenario_1_fe_args, epoch)
+AUC_Result_FE_2 = Comparison_Experiment_FE(args,ae_args,cae_args,anogan_args,soft_args, device, scenario_2_fe_args, epoch)
+AUC_Result_FE_3 = Comparison_Experiment_FE(args,ae_args,cae_args,anogan_args,soft_args, device, scenario_3_fe_args, epoch)
