@@ -5,7 +5,6 @@ import torch.nn.functional as F
 import numpy as np
 from sklearn.metrics import roc_auc_score
 import torch
-# from torch import optim
 import sys
 import matplotlib.pyplot as plt
 sys.path.append('C:\\Users\\com\\PycharmProjects\\Machinery Fault Signal Detection\\networks')
