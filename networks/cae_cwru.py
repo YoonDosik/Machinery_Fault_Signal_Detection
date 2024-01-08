@@ -10,7 +10,6 @@ import matplotlib.pyplot as plt
 sys.path.append('C:\\Users\\com\\PycharmProjects\\Machinery Fault Signal Detection\\networks')
 from Bar import Bar
 
-
 class Convolutional_1D_autoencoder(nn.Module):
 
     def __init__(self, z_dim = 16):
