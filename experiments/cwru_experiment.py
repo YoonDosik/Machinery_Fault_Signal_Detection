@@ -11,6 +11,7 @@ import CWRU_dataloader as cwp
 sys.path.append('C:\\Users\\com\\PycharmProjects\\Machinery Fault Signal Detection\\networks')
 import deepsvdd_cwru as Deep_SVDD
 import autoencoder_cwru as AE
+import cae_cwru as CAE
 
 # Anomaly detection scenario for CWRU dataset
 
@@ -134,34 +135,65 @@ class Args:
     save_path = 'D:\\Python_Code'
     percent = 0.8
     k = 5
+class AE_Args:
+
+    num_epochs = 200
+    patience = 50
+    lr = 0.001
+    weight_decay = 0.5e-6
+    lr_milestones = [100]
+    batch_size = 128
+    pretrain = None
+    latent_dim = 16
+    save_path = 'D:\\Python_Code'
+class CAE_Args:
+
+    num_epochs = 200
+    lr = 0.001
+    weight_decay = 0.5e-6
+    lr_milestones = [100]
+    batch_size = 128
+    pretrain = None
+    latent_dim = 16
+    save_path = 'C:\\Python_Code'
 
 args = Args()
+ae_args = AE_Args()
+cae_args = CAE_Args()
 
-def Comparison_Experiment_FE(args, device, scenario_0_args, epoch):
+def Comparison_Experiment_FE(args,ae_args,cae_args, device, scenario_0_args, epoch):
 
-    AUC_Result = np.zeros((epoch,2))
+    AUC_Result = np.zeros((epoch,3))
 
     # epoch = 반복 실험 횟수
     for i in range(epoch):
 
         dataloader_train, dataloader_test = DataLoader_Function_FE(args, scenario_0_args)
 
-        # Deep One Class SVDD
+        # Autoencoder
+        AE_net, AE_z_ = AE.train(ae_args, dataloader_train, device)
+        AE_test_labels, AE_test_scores, AE_test_ROC_value, AE_test_latent = AE.evaluation(AE_net, dataloader_test, device)
+        AUC_Result[i][0] = AE_test_ROC_value
 
+        # Convolutional Autoencoder
+        CAE_net, CAE_z_ = CAE.train(cae_args, dataloader_train, device)
+        CAE_test_labels, CAE_test_scores, CAE_test_ROC_value, CAE_test_latent = CAE.evaluation(CAE_net, dataloader_test, device)
+        AUC_Result[i][1] = CAE_test_ROC_value
+
+        # Deep One Class SVDD
         Deep_SVDD.pretrain(args, dataloader_train, device)
         deep_one_net, deep_one_c, z, Deep_SVDD_test_time = Deep_SVDD.train(args, dataloader_train, device)
         Deep_SVDD_labels, Deep_SVDD_scores, Deep_SVDD_ROC_value, Deep_SVDD_z = Deep_SVDD.evaluation(deep_one_net, deep_one_c, dataloader_test, device)
-        AUC_Result[i][1] = Deep_SVDD_ROC_value
-
+        AUC_Result[i][2] = Deep_SVDD_ROC_value
 
     a = pd.DataFrame(AUC_Result)
-    a.columns = ['AE','Deep_SVDD']
+    a.columns = ['AE','CAE','Deep_SVDD']
     a.to_csv(str(scenario_0_args.Normal_path[-6:] + "_" + str(args.lr) + "_AUC_Result.csv"))
 
 # 실험 반복 횟수
 epoch = 1
 
-AUC_Result_FE_0 = Comparison_Experiment_FE(args, device, scenario_0_fe_args, epoch)
-AUC_Result_FE_1 = Comparison_Experiment_FE(args, device, scenario_1_fe_args, epoch)
-AUC_Result_FE_2 = Comparison_Experiment_FE(args, device, scenario_2_fe_args, epoch)
-AUC_Result_FE_3 = Comparison_Experiment_FE(args, device, scenario_3_fe_args, epoch)
+AUC_Result_FE_0 = Comparison_Experiment_FE(args,ae_args,ae_args, device, scenario_0_fe_args, epoch)
+AUC_Result_FE_1 = Comparison_Experiment_FE(args,ae_args,ae_args, device, scenario_1_fe_args, epoch)
+AUC_Result_FE_2 = Comparison_Experiment_FE(args,ae_args,ae_args, device, scenario_2_fe_args, epoch)
+AUC_Result_FE_3 = Comparison_Experiment_FE(args,ae_args,ae_args, device, scenario_3_fe_args, epoch)
