@@ -14,6 +14,7 @@ import autoencoder_cwru as AE
 import cae_cwru as CAE
 import AnoGAN_cwru as AnoGAN
 import soft_deepsvdd_cwru as Soft_Deep_SVDD
+import traditional_occ_algorithms as OCC
 
 # Anomaly detection scenario for CWRU dataset
 
@@ -172,7 +173,6 @@ class AnoGAN_Args:
     split_rate = 0.8
     save_path = os.getcwd()
     l = 0.1
-
 class Soft_Args():
 
     num_epochs_ae = 6
@@ -192,52 +192,80 @@ class Soft_Args():
     pretrain = True
     weight_decay = 0.5e-6
     weight_decay_ae = 0.5e-3
+class KDE_Args():
+
+    kernel = 'gaussian'
 
 args = Args()
 ae_args = AE_Args()
 cae_args = CAE_Args()
 anogan_args = AnoGAN_Args()
 soft_args = Soft_Args()
+kde_args = KDE_Args()
 
+
+def PCA_Signal_Experiment_DE(kde_args, dataloader_train, dataloader_test):
+
+    # Vibration
+    Vib_PCA_train_data, Vib_PCA_train_label, CWRU_scaler = OCC.Creation_of_PCA_Train(dataloader_train)
+    Vib_PCA_test_data, Vib_PCA_test_label = OCC.Creation_of_PCA_Test(Vib_PCA_train_data, dataloader_test, CWRU_scaler)
+
+    # Kernel Density Estimation
+    kde = OCC.Kernel_Density_Estimation_Train(kde_args, Vib_PCA_train_data)
+
+    KDE_Test_score, KDE_Test_ROC_value = OCC.Kernel_Density_Estimation_Test(kde, Vib_PCA_test_data, Vib_PCA_test_label)
+
+    IF_Test_ROC_value = OCC.Isolation_Forest(Vib_PCA_train_data, Vib_PCA_test_data, Vib_PCA_test_label)
+
+    SVDD_Test_ROC_Value = OCC.OC_SVM(Vib_PCA_train_data, Vib_PCA_test_data, Vib_PCA_test_label, 0.00097656, 0.01)
+
+    return KDE_Test_ROC_value, IF_Test_ROC_value, SVDD_Test_ROC_Value
 def Comparison_Experiment_FE(args,ae_args,cae_args,anogan_args,soft_args, device, scenario_0_args, epoch):
 
-    AUC_Result = np.zeros((epoch,5))
+    AUC_Result = np.zeros((epoch,8))
 
     # epoch = 반복 실험 횟수
     for i in range(epoch):
 
         dataloader_train, dataloader_test = DataLoader_Function_FE(args, scenario_0_args)
 
+        # PCA with traditional OCC (i.e., KDE, Isolation Forest, SVDD)
+        KDE_Test_ROC_value, IF_Test_ROC_value, SVDD_Test_ROC_Value = PCA_Signal_Experiment_DE(kde_args, dataloader_train, dataloader_test)
+
+        AUC_Result[i][0] = KDE_Test_ROC_value
+        AUC_Result[i][1] = IF_Test_ROC_value
+        AUC_Result[i][2] = SVDD_Test_ROC_Value
+
         # Autoencoder
         AE_net, AE_z_ = AE.train(ae_args, dataloader_train, device)
         AE_test_labels, AE_test_scores, AE_test_ROC_value, AE_test_latent = AE.evaluation(AE_net, dataloader_test, device)
-        AUC_Result[i][0] = AE_test_ROC_value
+        AUC_Result[i][3] = AE_test_ROC_value
 
         # Convolutional Autoencoder
         CAE_net, CAE_z_ = CAE.train(cae_args, dataloader_train, device)
         CAE_test_labels, CAE_test_scores, CAE_test_ROC_value, CAE_test_latent = CAE.evaluation(CAE_net, dataloader_test, device)
-        AUC_Result[i][1] = CAE_test_ROC_value
+        AUC_Result[i][4] = CAE_test_ROC_value
 
         # Anomaly Generative Adversarial networks
         D, G, AnoGAN_test_time = AnoGAN.Train_AnoGAN(anogan_args, dataloader_train, device)
         AnoGAN_score = AnoGAN.Test_AnoGAN(anogan_args, D, G, dataloader_test, device)
         AnoGAN_ROC_Value = AnoGAN.AnoGAN_ROC_Value(AnoGAN_score, dataloader_test)
-        AUC_Result[i][2] = AnoGAN_ROC_Value
+        AUC_Result[i][5] = AnoGAN_ROC_Value
 
         # Soft-boundary Deep SVDD
         R = soft_args.initial_radius
         soft_net, soft_c, optimal_R, normal_latent, Soft_test_time = Soft_Deep_SVDD.train(soft_args, dataloader_train, device, R)
         Soft_test_labels, Soft_test_scores, Soft_test_ROC_Value, Soft_test_latent = Soft_Deep_SVDD.test(soft_args,soft_net, soft_c, dataloader_test, optimal_R, device)
-        AUC_Result[i][3] = Soft_test_ROC_Value
+        AUC_Result[i][6] = Soft_test_ROC_Value
 
         # Deep One Class SVDD
         Deep_SVDD.pretrain(args, dataloader_train, device)
         deep_one_net, deep_one_c, z, Deep_SVDD_test_time = Deep_SVDD.train(args, dataloader_train, device)
         Deep_SVDD_labels, Deep_SVDD_scores, Deep_SVDD_ROC_value, Deep_SVDD_z = Deep_SVDD.evaluation(deep_one_net, deep_one_c, dataloader_test, device)
-        AUC_Result[i][4] = Deep_SVDD_ROC_value
+        AUC_Result[i][7] = Deep_SVDD_ROC_value
 
     a = pd.DataFrame(AUC_Result)
-    a.columns = ['AE','CAE','AnoGAN','Soft_Deep_SVDD','Deep_SVDD']
+    a.columns = ['KDE','IF','SVDD','AE','CAE','AnoGAN','Soft_Deep_SVDD','Deep_SVDD']
     a.to_csv(str(scenario_0_args.Normal_path[-6:] + "_" + str(args.lr) + "_AUC_Result.csv"))
 
 # 실험 반복 횟수
